@@ -4,7 +4,7 @@
 SUPPORTED_MANIFEST_SCHEMA=2
 PACKAGE_MANIFEST="manifest.yml"
 SDK_MANIFEST="sdk/manifest.yml"
-API_VERSION=$(echo -e "import sdk.python.constants\nprint sdk.python.constants.API_VERSION"|python)
+API_VERSION=$(echo -e "import sdk.python.constants\nprint(sdk.python.constants.API_VERSION)"|python3)
 
 # Get the package manifest schema version if the file exists
 if [ -f "$PACKAGE_MANIFEST" ]; then
@@ -33,7 +33,7 @@ if [ "$1" = 'egeoffrey' ]; then
     fi
     # start eGeoffrey watchdog service
     echo -e "Starting watchdog..."
-    exec python -m sdk.python.module.start
+    exec python3 -m sdk.python.module.start
 fi
 
 # execute the provided command

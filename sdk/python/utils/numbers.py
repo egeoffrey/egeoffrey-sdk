@@ -5,7 +5,7 @@
 
 from tinynumpy import tinynumpy
 import random
-import __builtin__
+import builtins
 
 # return true if the input is a number
 def is_number(s):
@@ -34,7 +34,7 @@ def remove_all(array, value_array):
 def min(data):
     data = remove_all(data,[None,""])
     if len(data) > 0: 
-        if is_number(data[0]): return __builtin__.min(data)
+        if is_number(data[0]): return builtins.min(data)
         else: return None
     else: return None
 
@@ -42,7 +42,7 @@ def min(data):
 def max(data):
     data = remove_all(data,[None,""])
     if len(data) > 0: 
-        if is_number(data[0]): return __builtin__.max(data)
+        if is_number(data[0]): return builtins.max(data)
         else: return None
     else: return None
 
@@ -73,7 +73,7 @@ def avg(data):
     data = remove_all(data,[None,""])
     if len(data) > 0:
         if is_number(data[0]): return normalize(tinynumpy.array(data).mean())
-        else: return __builtin__.max(set(data), key=data.count)
+        else: return builtins.max(set(data), key=data.count)
     else: return None
 
 # calculate the sum of a given array of data

@@ -94,7 +94,7 @@ class Message():
             # expecting a json payload
             try: 
                 self.__payload = json.loads(payload)
-            except Exception,e:
+            except Exception as e:
                 raise Exception("payload in an invalid JSON format: "+exception.get(e)+" - "+str(payload))
 
     # set the payload to value

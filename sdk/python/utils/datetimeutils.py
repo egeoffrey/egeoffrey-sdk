@@ -11,7 +11,7 @@ class DateTimeUtils():
         self.__utc_offset = 0
         try:
             self.__utc_offset = int(utc_offset)
-        except Exception,e: 
+        except Exception as e: 
             pass
         
     # return the timestamp with the timezone offset applied

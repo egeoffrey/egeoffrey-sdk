@@ -4,9 +4,6 @@
 # Python: 
 
 import sys
-reload(sys)  
-sys.setdefaultencoding('utf8')
-
 import os
 import time
 import threading
@@ -19,11 +16,8 @@ import sdk.python.utils.exceptions as exception
 import sdk.python.constants as constants
 import sdk.python.utils.strings
 
-class Module(threading.Thread):
+class Module(threading.Thread, metaclass=ABCMeta):
     # used for enforcing abstract methods
-    __metaclass__ = ABCMeta 
-    
-    # initialize the class and set the variables
     def __init__(self, scope, name):
         # thread init
         super(Module, self).__init__()
@@ -66,7 +60,7 @@ class Module(threading.Thread):
         try:
             self.log_debug("Initializing module...")
             self.on_init()
-        except Exception,e: 
+        except Exception as e: 
             self.log_error("runtime error during on_init(): "+exception.get(e))
 
     # Add a listener for the given configuration request (will call on_configuration())
@@ -109,7 +103,7 @@ class Module(threading.Thread):
     # log a message
     def __log(self, severity, text, allow_remote_logging):
         if self.logging_local:
-            print sdk.python.utils.strings.format_log_line(severity, self.fullname, text)
+            print(sdk.python.utils.strings.format_log_line(severity, self.fullname, text))
         if self.logging_remote and allow_remote_logging:
             # send the message to the logger module
             message = Message(self)
@@ -194,7 +188,7 @@ class Module(threading.Thread):
         # run the user's callback if configured, otherwise will be started once all the required configuration will be received
         try: 
             self.on_start()
-        except Exception,e: 
+        except Exception as e: 
             self.log_error("runtime error during on_start(): "+exception.get(e))
 
     # shut down the module, called when stopping the thread

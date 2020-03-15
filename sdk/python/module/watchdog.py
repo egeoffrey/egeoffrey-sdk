@@ -10,6 +10,7 @@ import signal
 import sys
 import hashlib
 import yaml
+import importlib
 
 from sdk.python.module.module import Module
 from sdk.python.module.helpers.message import Message
@@ -25,14 +26,14 @@ class Watchdog(Module):
         # load this package manifest file
         try:
             self.manifest = self.get_manifest("manifest.yml")
-        except Exception,e: 
-            print exception.get(e)
+        except Exception as e: 
+            print(exception.get(e))
             sys.exit(1)
         # embed sdk manifest
         try:
             self.manifest["sdk"] = self.get_manifest("sdk/manifest.yml")
-        except Exception,e: 
-            print exception.get(e)
+        except Exception as e: 
+            print(exception.get(e))
             sys.exit(1)
         # apply sdk requirements if any
         if "minimum_sdk_version" in self.manifest:
@@ -40,7 +41,7 @@ class Watchdog(Module):
             minimum_version = float(split[0])
             minimum_revision = int(split[1]) if len(split) == 2 else None
             if self.manifest["sdk"]["version"] < minimum_version or (minimum_revision is not None and self.manifest["sdk"]["version"] == minimum_version and self.manifest["sdk"]["revision"] < minimum_revision):
-                print "sdk v"+str(self.manifest["sdk"]["version"])+"-"+str(self.manifest["sdk"]["revision"])+" is below the minimum required version "+str(self.manifest["minimum_sdk_version"])
+                print("sdk v"+str(self.manifest["sdk"]["version"])+"-"+str(self.manifest["sdk"]["revision"])+" is below the minimum required version "+str(self.manifest["minimum_sdk_version"]))
                 sys.exit(1)
         # set watchdog service name
         self.scope = "system"
@@ -74,7 +75,7 @@ class Watchdog(Module):
         # ensure the manifest is valid
         try:
             manifest = yaml.load(content, Loader=yaml.SafeLoader)
-        except Exception,e:
+        except Exception as e:
             raise Exception(manifest_file+" is an invalid manifest:- "+exception.get(e))
         if manifest["manifest_schema"] != self.supported_manifest_schema:
                 raise Exception(manifest_file+" has an unsupported manifest schema v"+str(manifest["manifest_schema"]))
@@ -86,10 +87,10 @@ class Watchdog(Module):
     # return a predictable hash for the runtime environment taking into consideration user-provided env variables
     def get_runtime_signature(self):
         string = "HASH"
-        for item, value in os.environ.items():
+        for item, value in list(os.environ.items()):
             if not item in ["EGEOFFREY_GATEWAY_HOSTNAME", "EGEOFFREY_GATEWAY_PORT", "EGEOFFREY_ID", "EGEOFFREY_PASSCODE", "EGEOFFREY_MODULES"]: continue
             string = string+"|"+item+"="+str(value)
-        return hashlib.sha1(string).hexdigest()[:10]
+        return hashlib.sha1(string.encode("utf-8")).hexdigest()[:10]
 
     # return the module entry associated to the fullname provided
     def get_module(self, fullname):
@@ -115,7 +116,7 @@ class Watchdog(Module):
                 alias = None
             # ensure module name is valid
             if "/" not in package_file: 
-                print "Skipping invalid module "+package_file
+                print("Skipping invalid module "+package_file)
                 continue
             # split the package from the filename (will become scope and module name - unless an alias is provided)
             package, file = package_file.split("/") 
@@ -145,19 +146,19 @@ class Watchdog(Module):
         try: 
             # ensure the module exists
             if not os.path.isfile(entry["package"]+"/"+entry["file"]+".py"):
-                print "Module "+entry["package"]+"/"+entry["file"]+" not found, skipping"
+                print("Module "+entry["package"]+"/"+entry["file"]+" not found, skipping")
                 return
             # import the class from the module
             imported_module = __import__(entry["package"]+"."+entry["file"], fromlist=[classname])
             # reload the code
-            reload(imported_module)
+            importlib.reload(imported_module)
             # crate the object
             class_object = getattr(imported_module, classname)
             thread = class_object(entry["scope"], entry["name"])
             # set attributes
             thread.version = str(self.manifest["version"])+"-"+str(self.manifest["revision"])+" ("+str(self.manifest["branch"])+")"
             hasher = hashlib.md5()
-            hasher.update(repr(imported_module))
+            hasher.update(repr(imported_module).encode("utf-8"))
             thread.build = hasher.hexdigest()[:7]
             thread.daemon = True
             thread.watchdog = self
@@ -166,17 +167,17 @@ class Watchdog(Module):
             # keep track of the managed thread
             self.threads[entry["fullname"]] = thread 
             entry["started"] = True
-        except Exception,e:
+        except Exception as e:
             # TODO: print?
-            print "Error while running module "+entry["fullname"]+": "+exception.get(e)
+            print("Error while running module "+entry["fullname"]+": "+exception.get(e))
     
     # stop an entry of the modules data structure    
     def stop_module(self, entry):
         if not entry["started"]: return
         try:
             self.threads[entry["fullname"]].join()
-        except Exception,e:
-            print "Error while stopping module "+entry["fullname"]+": "+exception.get(e)
+        except Exception as e:
+            print("Error while stopping module "+entry["fullname"]+": "+exception.get(e))
         entry["started"] = False
         
     # restart a module
@@ -237,7 +238,7 @@ class Watchdog(Module):
                 # ensure the yaml file is valid
                 try:
                     content = yaml.load(content, Loader=yaml.SafeLoader)
-                except Exception,e: 
+                except Exception as e: 
                     self.log_warning("configuration file in an invalid YAML format: "+filename+" - "+exception.get(e))
                     continue
                 # keep track of the valid configuration file

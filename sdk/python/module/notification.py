@@ -7,11 +7,8 @@ from sdk.python.module.module import Module
 import sdk.python.utils.exceptions as exception
 
 # notification common functionalities
-class Notification(Module):
+class Notification(Module, metaclass=ABCMeta):
     # used for enforcing abstract methods
-    __metaclass__ = ABCMeta 
-    
-    # What to do when initializing
     def __init__(self, scope, name):
         # call superclass function
         super(Notification, self).__init__(scope, name)
@@ -81,7 +78,7 @@ class Notification(Module):
             self.__playing = True
             try: 
                 self.on_notify(severity, text)
-            except Exception,e:
+            except Exception as e:
                 self.log_error("unable to notify: "+exception.get(e))
             self.__playing = False
             # if there is a notification in the queue, spool it

@@ -1,6 +1,6 @@
 import collections
 import paho.mqtt.client as mqtt
-import Queue
+import queue
 import threading
 
 import sdk.python.utils.exceptions as exception
@@ -26,14 +26,14 @@ class Mqtt_consumer(threading.Thread):
             try:
                 # get a message from the queue, waiting for maximum 1 second if empty
                 message = queue.get(True, 1)
-            except Exception,e: 
+            except Exception as e: 
                 # timeout exceeded, start over 
                 continue
             if message is None: continue
             # consume the message
             try:
                 self.on_message_consume(message)
-            except Exception,e: 
+            except Exception as e: 
                 self.mqtt_client.module.log_error("runtime error during on_message_consume() - "+message.dump()+": "+exception.get(e))
             # commit message consumed
             queue.task_done()
@@ -54,7 +54,7 @@ class Mqtt_consumer(threading.Thread):
                         # notify the module about the configuration just received
                         try:
                             is_valid_configuration = self.mqtt_client.module.on_configuration(message)
-                        except Exception,e: 
+                        except Exception as e: 
                             self.mqtt_client.module.log_error("runtime error during on_configuration() - "+message.dump()+": "+exception.get(e))
                             return
                         # if the configuration has not been accepted by the module (returned False), ignore it
@@ -78,7 +78,7 @@ class Mqtt_consumer(threading.Thread):
                                                 queued_message = self.mqtt_client.configuration_queue.popleft()
                                                 try:
                                                     self.mqtt_client.module.on_configuration(queued_message)
-                                                except Exception,e: 
+                                                except Exception as e: 
                                                     self.mqtt_client.module.log_error("runtime error during on_configuration() - "+queued_message.dump()+": "+exception.get(e))
                                             except IndexError:
                                                 break
@@ -97,9 +97,9 @@ class Mqtt_consumer(threading.Thread):
                         if self.mqtt_client.module.configured: 
                             try: 
                                 self.mqtt_client.module.on_message(message)
-                            except Exception,e: 
+                            except Exception as e: 
                                 self.mqtt_client.module.log_error("runtime error during on_message(): "+exception.get(e))
                     # avoid delivering the same message multiple times for overlapping subscribers
                     return 
-        except Exception,e:
+        except Exception as e:
             self.mqtt_client.module.log_error("Cannot handle request: "+exception.get(e))

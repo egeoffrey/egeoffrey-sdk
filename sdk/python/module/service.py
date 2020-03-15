@@ -45,7 +45,7 @@ class Service(Module):
         if sensor_id in self.__jobs:
             try:
                 self.__scheduler.remove_job(self.__jobs[sensor_id])
-            except Exception,e: 
+            except Exception as e: 
                 self.log_error("Unable to remove scheduled job for sensor "+sensor_id+": "+exception.get(e))
         
     # schedule a job for polling a sensor
@@ -62,7 +62,7 @@ class Service(Module):
         # schedule the job for execution
         try:
             self.__jobs[sensor_id] = self.__scheduler.add_job(job).id
-        except Exception,e: 
+        except Exception as e: 
             self.log_error("Unable to scheduled job for sensor "+sensor_id+": "+exception.get(e))
         # if schedule trigger is interval, run also the job immediately
         if schedule["trigger"] == "interval" and self.poll_at_startup:

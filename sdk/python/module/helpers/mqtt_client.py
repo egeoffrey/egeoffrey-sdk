@@ -4,7 +4,7 @@ import time
 import json
 import paho.mqtt.client as mqtt
 import ssl
-import Queue
+import queue
 
 import sdk.python.constants as constants
 import sdk.python.utils.exceptions as exception
@@ -26,7 +26,7 @@ class Mqtt_client():
         # queue configuration messages while not configured
         self.configuration_queue = collections.deque(maxlen=500)
         # use a queue for exchanging incoming messages with consumer threads
-        self.consumer_queue = Queue.Queue(maxsize=0)
+        self.consumer_queue = queue.Queue(maxsize=0)
         # number of consumer threads to create
         self.consumer_threads = 1
         # initialize consumer threads
@@ -52,7 +52,7 @@ class Mqtt_client():
                 # TODO: this has to be moved into on_connect but is never called if moved
                 self.module.connected = True
                 # TODO: last will? e.g. log a disconnecting message
-            except Exception,e:
+            except Exception as e:
                 self.module.log_warning("Unable to connect to "+self.module.gateway_hostname+":"+str(self.module.gateway_port)+" - "+exception.get(e))
                 self.module.sleep(10)
 
@@ -119,7 +119,7 @@ class Mqtt_client():
                     self.module.log_error("Cannot connect: " + mqtt.connack_string(rc))
                     self.module.connected = False
                     self.__connect()
-            except Exception,e:
+            except Exception as e:
                 self.module.log_error("runtime error in __on_connect(): "+exception.get(e))
             
         # what to do when receiving a message
@@ -129,7 +129,7 @@ class Mqtt_client():
                 message = Message()
                 message.parse(msg.topic, msg.payload, msg.retain)
                 if self.module.verbose: self.module.log_debug("Received message "+message.dump(), False)
-            except Exception,e:
+            except Exception as e:
                 self.module.log_error("Invalid message received on "+msg.topic+" - "+msg.payload+": "+exception.get(e))
                 return
             # ensure this message is for this house
@@ -149,7 +149,7 @@ class Mqtt_client():
                     return
                 # queue the message
                 self.consumer_queue.put_nowait(message)
-            except Exception,e:
+            except Exception as e:
                 self.module.log_error("Unable to queue incoming message: "+exception.get(e))
 
         # what to do upon disconnect
@@ -158,7 +158,7 @@ class Mqtt_client():
             # call user's callback
             try: 
                 self.module.on_disconnect()
-            except Exception,e: 
+            except Exception as e: 
                 self.module.log_error("runtime error during on_disconnect(): "+exception.get(e))
             if rc == 0:
                 self.module.log_debug("Disconnected from "+self.module.gateway_hostname+":"+str(self.module.gateway_port))
@@ -180,7 +180,7 @@ class Mqtt_client():
                 consumer.start()
             # start mqtt network thread
             self.gateway.loop_start()
-        except Exception,e: 
+        except Exception as e: 
             self.module.log_error("Unexpected runtime error: "+exception.get(e))
 
     # add a listener for the given request
@@ -216,6 +216,6 @@ class Mqtt_client():
         self.gateway.disconnect()
         try:
             self.module.on_disconnect()
-        except Exception,e: 
+        except Exception as e: 
             self.module.log_error("runtime error during on_disconnect(): "+exception.get(e))
 

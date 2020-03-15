@@ -3,7 +3,7 @@
 # OS: 
 # Python: 
 
-import Queue
+import queue
 import os
 import threading
 import subprocess
@@ -29,7 +29,7 @@ class CommandWrapper(object):
 				# add the line to the queue
 				queue.put_nowait(str(line))
 		# a queue will be used to collect the output
-		queue = Queue.Queue()
+		queue = queue.Queue()
 		# setup the thread
 		thread = threading.Thread(target=target, args=[queue])
 		# start the thread
