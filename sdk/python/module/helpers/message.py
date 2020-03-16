@@ -93,7 +93,7 @@ class Message():
         else:
             # expecting a json payload
             try: 
-                self.__payload = json.loads(payload)
+                self.__payload = json.loads(payload.decode())
             except Exception as e:
                 raise Exception("payload in an invalid JSON format: "+exception.get(e)+" - "+str(payload))
 
