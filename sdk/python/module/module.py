@@ -72,19 +72,19 @@ class Module(threading.Thread):
     # Add a listener for the given configuration request (will call on_configuration())
     def add_configuration_listener(self, args, version=None, wait_for_it=False):
         filename = args if version is None else str(version)+"/"+args
-        return self.__mqtt.add_listener("controller/config", "*/*", "CONF", filename, wait_for_it)
+        return self.__mqtt.add_listener(self.house_id, "controller/config", "*/*", "CONF", filename, wait_for_it)
 
     # add a listener for the messages addressed to this module (will call on_message())
     def add_request_listener(self, from_module, command, args):
-        return self.__mqtt.add_listener(from_module, self.fullname, command, args, False)
+        return self.__mqtt.add_listener(self.house_id, from_module, self.fullname, command, args, False)
     
     # add a listener for broadcasted messages from the given module (will call on_message())
     def add_broadcast_listener(self, from_module, command, args):
-        return self.__mqtt.add_listener(from_module, "*/*", command, args, False)
+        return self.__mqtt.add_listener(self.house_id, from_module, "*/*", command, args, False)
 
     # add a listener for intercepting messages from a given module to a given module (will call on_message())
     def add_inspection_listener(self, from_module, to_module, command, args):
-        return self.__mqtt.add_listener(from_module, to_module, command, args, False)
+        return self.__mqtt.add_listener(self.house_id, from_module, to_module, command, args, False)
     
     # remove a topic previously subscribed
     def remove_listener(self, topic):
@@ -139,6 +139,12 @@ class Module(threading.Thread):
     # ensure all the items of an array of settings are included in the configuration object provided
     def is_valid_configuration(self, settings, configuration):
         if not isinstance(configuration, dict): return False
+        # for Service and Interaction subclasses, return false if there is a "disabled" attribute set
+        for base in self.__class__.__bases__:
+            if base.__name__ in ["Service", "Interaction"] and "disabled" in configuration and configuration["disabled"]:
+                self.log_debug("module disabled by configuration")
+                return False
+        # for every mandatory parameter, return false if not available
         for item in settings:
             if not item in configuration or configuration[item] is None: 
                 self.log_warning("Invalid configuration received, "+item+" missing in "+str(configuration))
@@ -193,7 +199,9 @@ class Module(threading.Thread):
             self.sleep(1)
         # run the user's callback if configured, otherwise will be started once all the required configuration will be received
         try: 
+            self.on_pre_start()
             self.on_start()
+            self.on_post_start()
         except Exception,e: 
             self.log_error("runtime error during on_start(): "+exception.get(e))
 
@@ -219,11 +227,19 @@ class Module(threading.Thread):
     def on_connect(self):
         pass
         
-    # What to do when running (subclass has to implement)
+    # What to do just before starting (subclass may implement)
+    def on_pre_start(self):
+        pass
+        
+    # What to do when starting (subclass has to implement)
     @abstractmethod
     def on_start(self):
         pass
         
+    # What to do just after starting (subclass may implement)
+    def on_post_start(self):
+        pass
+
     # What to do when shutting down (subclass has to implement)
     @abstractmethod
     def on_stop(self):

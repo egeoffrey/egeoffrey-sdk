@@ -132,10 +132,6 @@ class Mqtt_client():
             except Exception,e:
                 self.module.log_error("Invalid message received on "+msg.topic+" - "+msg.payload+": "+exception.get(e))
                 return
-            # ensure this message is for this house
-            if message.house_id != "*" and message.house_id != self.module.house_id:
-                self.module.log_debug("received message for the wrong house "+message.house_id+": "+message.dump())
-                return
             # queue the message
             try:
                 queue_size = self.consumer_queue.qsize()
@@ -184,8 +180,8 @@ class Mqtt_client():
             self.module.log_error("Unexpected runtime error: "+exception.get(e))
 
     # add a listener for the given request
-    def add_listener(self, from_module, to_module, command, args, wait_for_it):
-        topic = self.__build_topic("+", from_module, to_module, command, args)
+    def add_listener(self, house_id, from_module, to_module, command, args, wait_for_it):
+        topic = self.__build_topic(house_id, from_module, to_module, command, args)
         if wait_for_it:
             # if this is mandatory topic, unconfigure the module and add it to the list of topics to wait for
             self.topics_to_wait.append(topic)

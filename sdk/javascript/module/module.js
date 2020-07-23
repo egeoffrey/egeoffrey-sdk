@@ -44,22 +44,22 @@ class Module {
     // Add a listener for the given configuration request (will call on_configuration())
     add_configuration_listener(args, version=null, wait_for_it=false) {
         var filename = version == null ? args : version+"/"+args
-        return this.__mqtt.add_listener("controller/config", "*/*", "CONF", filename, wait_for_it)
+        return this.__mqtt.add_listener(this.house_id, "controller/config", "*/*", "CONF", filename, wait_for_it)
     }
     
     // add a listener for the messages addressed to this module (will call on_message())
     add_request_listener(from_module, command, args) {
-        return this.__mqtt.add_listener(from_module, this.fullname, command, args, false)
+        return this.__mqtt.add_listener(this.house_id, from_module, this.fullname, command, args, false)
     }
     
     // add a listener for broadcasted messages from the given module (will call on_message())
     add_broadcast_listener(from_module, command, args) {
-        return this.__mqtt.add_listener(from_module, "*/*", command, args, false)
+        return this.__mqtt.add_listener(this.house_id, from_module, "*/*", command, args, false)
     }
     
     // add a listener for intercepting messages from a given module to a given module (will call on_message())
     add_inspection_listener(from_module, to_module, command, args) {
-        return this.__mqtt.add_listener(from_module, to_module, command, args, false)
+        return this.__mqtt.add_listener(this.house_id, from_module, to_module, command, args, false)
     }
     
     // remove a topic previously subscribed
@@ -161,7 +161,9 @@ class Module {
         // run the user's callback if configured, otherwise will be started once all the required configuration will be received
         if (this.configured) {
             try {
+                this.on_pre_start()
                 this.on_start()
+                this.on_post_start()
             } catch(e) { 
                 this.log_error("runtime error during on_start(): "+get_exception(e))
             }
@@ -189,9 +191,17 @@ class Module {
     on_connect() {
     }
         
+    // What to do just before starting (subclass may implement)
+    on_pre_start() {
+    }
+    
     // What to do when running (subclass has to implement)
     on_start() {
         throw new Error('on_start() not implemented')
+    }
+    
+    // What to do just after starting (subclass may implement)
+    on_post_start() {
     }
         
     // What to do when shutting down (subclass has to implement)

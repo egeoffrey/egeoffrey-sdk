@@ -140,11 +140,6 @@ class Mqtt_client {
                 this_class.__module.log_error("Invalid message received on "+msg.destinationName+" - "+msg.payloadString+": "+get_exception(e))
                 return
             }
-            // ensure this message is for this house
-            if (message.house_id != "*" && message.house_id != this_class.__module.house_id) {
-                this_class.__module.log_warning("received message for the wrong house "+message.house_id+": "+message.dump())
-                return
-            }
             try {
                 // identify the subscribed topic which caused this message to get here
                 for (var pattern of this_class.__topics_subscribed) {
@@ -241,8 +236,8 @@ class Mqtt_client {
     }
     
     // add a listener for the given request
-    add_listener(from_module, to_module, command, filter, wait_for_it) {
-        var topic = this.__build_topic("+", from_module, to_module, command, filter)
+    add_listener(house_id, from_module, to_module, command, filter, wait_for_it) {
+        var topic = this.__build_topic(house_id, from_module, to_module, command, filter)
         if (wait_for_it) {
             // if this is mandatory topic, unconfigure the module and add it to the list of topics to wait for
             if (wait_for_it) {

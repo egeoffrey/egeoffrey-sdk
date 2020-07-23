@@ -119,3 +119,7 @@ class Scheduler():
     # remove a job (by id) from the scheduler
     def remove_job(self, id):
         return self.__scheduler.remove_job(id)
+        
+    # get jobs list
+    def get_jobs(self):
+        return self.__scheduler.get_jobs()
