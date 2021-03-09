@@ -67,7 +67,7 @@ class Mqtt_client {
     __subscribe(topic) {
         this.__module.log_debug("Subscribing topic "+topic)
         try {
-            this.__gateway.subscribe(topic, {"qos": 2})
+            this.__gateway.subscribe(topic, {"qos": this.__module.gateway_qos_subscribe})
         } catch(e) {
             this.__module.log_error("Unable to subscribe to topic "+topic+": "+get_exception(e))
         }

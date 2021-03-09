@@ -1,10 +1,10 @@
-branch: master
+branch: development
 description: null
 dockerhub: egeoffrey/egeoffrey-sdk
 github: egeoffrey/egeoffrey-sdk
 manifest_schema: 2
 modules: []
 package: egeoffrey-sdk
-revision: 36
+revision: 37
 tags: null
 version: 1.0

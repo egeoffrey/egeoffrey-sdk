@@ -14,6 +14,7 @@ class Module {
         this.gateway_hostname = "EGEOFFREY_GATEWAY_HOSTNAME" in window ? window.EGEOFFREY_GATEWAY_HOSTNAME : "localhost"
         this.gateway_port = "EGEOFFREY_GATEWAY_PORT" in window ? window.EGEOFFREY_GATEWAY_PORT : 443
         this.gateway_ssl = "EGEOFFREY_GATEWAY_SSL" in window ? Boolean(window.EGEOFFREY_GATEWAY_SSL) : false
+        this.gateway_qos_subscribe = "EGEOFFREY_GATEWAY_QOS_SUBSCRIBE" in window ? window.EGEOFFREY_GATEWAY_QOS_SUBSCRIBE : 2
         // house settings
         this.house_id = "EGEOFFREY_ID" in window ? window.EGEOFFREY_ID : "house"
         this.house_passcode = "EGEOFFREY_PASSCODE" in window ? window.EGEOFFREY_PASSCODE : ""

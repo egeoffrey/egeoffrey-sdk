@@ -60,7 +60,7 @@ class Mqtt_client():
     def __subscribe(self, topic):
         self.module.log_debug("Subscribing topic "+topic)
         self.gateway.unsubscribe(topic)
-        self.gateway.subscribe(topic, qos=2)
+        self.gateway.subscribe(topic, qos=self.module.gateway_qos_subscribe)
         
     # Build the full topic (e.g. egeoffrey/v1/<house_id>/<from_module>/<to_module>/<command>/<args>)
     def __build_topic(self, house_id, from_module, to_module, command, args):
@@ -76,7 +76,7 @@ class Mqtt_client():
         topic = self.__build_topic(house_id, self.module.fullname, to_module, command, args)
         # publish if connected
         if self.module.connected:
-            info = self.gateway.publish(topic, payload, retain=retain, qos=2)
+            info = self.gateway.publish(topic, payload, retain=retain, qos=self.module.gateway_qos_publish)
         # queue the message if offline
         else:
             self.publish_queue.append([topic, payload, retain])
@@ -111,7 +111,7 @@ class Mqtt_client():
                     while True:
                         try:
                             entry = self.publish_queue.popleft()
-                            self.gateway.publish(entry[0], entry[1], retain=entry[2], qos=2)
+                            self.gateway.publish(entry[0], entry[1], retain=entry[2], qos=self.module.gateway_qos_publish)
                         except IndexError:
                             break
                 else:

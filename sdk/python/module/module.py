@@ -43,6 +43,8 @@ class Module(threading.Thread):
         self.gateway_ca_cert = os.getenv("EGEOFFREY_GATEWAY_CA_CERT", "/etc/ssl/certs")
         self.gateway_certfile = os.getenv("EGEOFFREY_GATEWAY_CERTFILE", None)
         self.gateway_keyfile = os.getenv("EGEOFFREY_GATEWAY_KEYFILE", None)
+        self.gateway_qos_subscribe = os.getenv("EGEOFFREY_GATEWAY_QOS_SUBSCRIBE", 2)
+        self.gateway_qos_publish = os.getenv("EGEOFFREY_GATEWAY_QOS_PUBLISH", 2)
         # house settings
         self.house_id = os.getenv("EGEOFFREY_ID", "house")
         self.house_passcode = os.getenv("EGEOFFREY_PASSCODE", "")
