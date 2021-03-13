@@ -64,6 +64,8 @@ class Watchdog(Module):
         signal.signal(signal.SIGINT, self.interrupt_handler)
         # subscribe for module discovery requests
         self.add_broadcast_listener("+/+","DISCOVER","#")
+        # subscribe for manifest requests
+        self.add_broadcast_listener("+/+","REQ_MANIFEST","#")
     
     # read and return a manifest file. Raise exception on error
     def get_manifest(self, manifest_file):
@@ -242,25 +244,35 @@ class Watchdog(Module):
                 # keep track of the valid configuration file
                 default_config.append({topic: content})
         return default_config
-        
-    # What to do when running    
-    def on_start(self):
-        # clear up previous manifest if any
+
+    # send the manifest to the bus
+    def publish_manifest(self, recipient="*/*"):
+        message = Message(self)
+        message.recipient = recipient
+        message.command = "MANIFEST"
+        message.args = self.manifest["package"]
+        message.set_data(self.manifest)
+        if self.gateway_retain_config:
+            message.retain = True 
+        self.send(message)
+    
+    # clear up a previously sent manifest from the bus
+    def clear_manifest(self):
         message = Message(self)
         message.recipient = "*/*"
         message.command = "MANIFEST"
         message.args = self.manifest["package"]
         message.set_null()
         message.retain = True 
-        self.send(message)
+        self.send(message)     
+        
+    # What to do when running    
+    def on_start(self):
+        if self.gateway_retain_config:
+            # clear up previous manifest if any
+            self.clear_manifest()
         # publish the new manifest
-        message = Message(self)
-        message.recipient = "*/*"
-        message.command = "MANIFEST"
-        message.args = self.manifest["package"]
-        message.set_data(self.manifest)
-        message.retain = True 
-        self.send(message)
+        self.publish_manifest()
         # start all the requested modules
         for entry in self.modules:
             self.start_module(entry)
@@ -272,14 +284,9 @@ class Watchdog(Module):
         
     # What to do when shutting down
     def on_stop(self):
-        # remove the manifest
-        message = Message(self)
-        message.recipient = "*/*"
-        message.command = "MANIFEST"
-        message.args = self.manifest["package"]
-        message.set_null()
-        message.retain = True 
-        self.send(message)
+        if self.gateway_retain_config:
+            # remove the manifest
+            self.clear_manifest()
 
     # What to do when receiving a request for this module    
     def on_message(self, message):
@@ -342,6 +349,9 @@ class Watchdog(Module):
             self.log_info("asked to restart module "+module["fullname"])
             self.stop_module(module)
             self.start_module(module)
+        # we've been requested for our manifest
+        elif message.command == "REQ_MANIFEST":
+            self.publish_manifest(message.sender)
                
      # What to do when receiving a new/updated configuration for this module    
     def on_configuration(self, message):

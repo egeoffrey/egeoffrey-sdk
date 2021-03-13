@@ -18,7 +18,8 @@ class Service(Module):
         # initialize internal cache
         self.cache = Cache()
         # scheduler is needed for polling sensors
-        self.__scheduler = Scheduler(self)
+        if self.scheduler is None:
+            self.scheduler = Scheduler(self)
         # map sensor_id with scheduler job_id
         self.__jobs = {}
         # map sensor_id with service's configuration
@@ -42,9 +43,9 @@ class Service(Module):
         # if already scheduled, stop it
         if sensor_id in self.__jobs:
             try:
-                for job in self.__scheduler.get_jobs():
+                for job in self.scheduler.get_jobs():
                     if job.id == self.__jobs[sensor_id]:
-                        self.__scheduler.remove_job(self.__jobs[sensor_id])
+                        self.scheduler.remove_job(self.__jobs[sensor_id])
             except Exception,e: 
                 self.log_error("Unable to remove scheduled job for sensor "+sensor_id+": "+exception.get(e))
             del self.__jobs[sensor_id]
@@ -62,7 +63,7 @@ class Service(Module):
         job["args"] = [sensor_id, configuration]
         # schedule the job for execution
         try:
-            self.__jobs[sensor_id] = self.__scheduler.add_job(job).id
+            self.__jobs[sensor_id] = self.scheduler.add_job(job).id
         except Exception,e: 
             self.log_error("Unable to scheduled job for sensor "+sensor_id+": "+exception.get(e))
         # if schedule trigger is interval, run also the job immediately
@@ -72,7 +73,7 @@ class Service(Module):
             poll_now_job["run_date"] = datetime.datetime.now() + datetime.timedelta(seconds=sdk.python.utils.numbers.randint(5,20))
             poll_now_job["func"] = self.__poll_sensor
             poll_now_job["args"] = [sensor_id, configuration]
-            self.__scheduler.add_job(poll_now_job)
+            self.scheduler.add_job(poll_now_job)
             
     # What to do just after starting (subclass may implement)
     def on_post_start(self):

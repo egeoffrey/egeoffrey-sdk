@@ -10,6 +10,9 @@ import sdk.python.constants as constants
 import sdk.python.utils.exceptions as exception
 from sdk.python.module.helpers.message import Message
 from sdk.python.module.helpers.mqtt_consumer import Mqtt_consumer
+from sdk.python.module.helpers.scheduler import Scheduler
+
+import sdk.python.utils.numbers
 
 class Mqtt_client():
     def __init__(self, module):
@@ -33,6 +36,31 @@ class Mqtt_client():
         self.consumers = []
         for i in range(0, self.consumer_threads):
             self.consumers.append(Mqtt_consumer(i, self))
+        # if the configuration is not retained in the gateway, we need additional tools for requesting it
+        if not self.module.gateway_retain_config:
+            self.module.scheduler = Scheduler(self)
+            self.pending_configurations = []
+            self.pending_configurations_job = None
+
+    # notify controller/config we need some configuration files
+    def __send_configuration_request(self, topic):
+        message = Message(self.module)
+        message.recipient = "controller/config"
+        message.command = "SUBSCRIBE"
+        message.set_data(topic)
+        self.module.send(message)
+
+    # job for periodically sending configuration request if controller/config does not respond or it is not running
+    def __resend_configuration_request(self):
+        # if we received all the pending configurations, clear the scheduled job
+        if len(self.pending_configurations) == 0:
+            self.module.scheduler.remove_job(self.pending_configurations_job)
+            self.pending_configurations_job = None
+            return
+        # otherwise for each pending configuration, send again a request to controller/config
+        else: 
+            for topic in self.pending_configurations:
+                self.__send_configuration_request(topic)
         
     # connect to the MQTT broker
     def __connect(self):
@@ -198,7 +226,27 @@ class Mqtt_client():
             self.topics_to_subscribe.append(topic)
         # return the topic so the user can unsubscribe from it if needed
         return topic
-            
+
+    # add a configuration listener for the given request
+    def add_configuration_listener(self, house_id, args, wait_for_it):
+        # just wrap add_listner
+        topic = self.add_listener(house_id, "controller/config", "*/*", "CONF", args, wait_for_it)
+        # if the config is not retained on the gateway, notify controller/config we need this piece of config
+        if not self.module.gateway_retain_config:
+            # add the configuration to the pending queue
+            self.pending_configurations.append(args)
+            # request the configuration files
+            self.__send_configuration_request(args)
+            # if not already running, schedule a job for periodically resending configuration requests in case controller/config has not responded
+            if self.pending_configurations_job is None:
+                job = {}
+                job["trigger"] = "interval"
+                job["seconds"] = sdk.python.utils.numbers.randint(3,10)
+                job["func"] = self.__resend_configuration_request
+                self.pending_configurations_job = self.module.scheduler.add_job(job).id
+        # otherwise do nothing, the configuration is excepted to be retained on the gateway and automatically consumed
+        return topic
+
     # disconnect from the MQTT broker
     def stop(self):
         # stop all message consumer threads

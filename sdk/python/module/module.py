@@ -9,11 +9,13 @@ sys.setdefaultencoding('utf8')
 
 import os
 import time
+import datetime
 import threading
 from abc import ABCMeta, abstractmethod
 
 from sdk.python.module.helpers.message import Message
 from sdk.python.module.helpers.mqtt_client import Mqtt_client
+from sdk.python.module.helpers.scheduler import Scheduler
 from sdk.python.module.helpers.session import Session
 import sdk.python.utils.exceptions as exception
 import sdk.python.constants as constants
@@ -45,6 +47,7 @@ class Module(threading.Thread):
         self.gateway_keyfile = os.getenv("EGEOFFREY_GATEWAY_KEYFILE", None)
         self.gateway_qos_subscribe = os.getenv("EGEOFFREY_GATEWAY_QOS_SUBSCRIBE", 2)
         self.gateway_qos_publish = os.getenv("EGEOFFREY_GATEWAY_QOS_PUBLISH", 2)
+        self.gateway_retain_config = bool(int(os.getenv("EGEOFFREY_GATEWAY_RETAIN_CONFIG", False)))
         # house settings
         self.house_id = os.getenv("EGEOFFREY_ID", "house")
         self.house_passcode = os.getenv("EGEOFFREY_PASSCODE", "")
@@ -54,6 +57,8 @@ class Module(threading.Thread):
         # logging
         self.logging_remote = bool(int(os.getenv("EGEOFFREY_LOGGING_REMOTE", True)))
         self.logging_local = bool(int(os.getenv("EGEOFFREY_LOGGING_LOCAL", True)))
+        # scheduler
+        self.scheduler = None
         # status
         self.connected = False
         self.configured = True # by default no configuration is required to start
@@ -74,7 +79,7 @@ class Module(threading.Thread):
     # Add a listener for the given configuration request (will call on_configuration())
     def add_configuration_listener(self, args, version=None, wait_for_it=False):
         filename = args if version is None else str(version)+"/"+args
-        return self.__mqtt.add_listener(self.house_id, "controller/config", "*/*", "CONF", filename, wait_for_it)
+        return self.__mqtt.add_configuration_listener(self.house_id, filename, wait_for_it)
 
     # add a listener for the messages addressed to this module (will call on_message())
     def add_request_listener(self, from_module, command, args):
@@ -83,6 +88,18 @@ class Module(threading.Thread):
     # add a listener for broadcasted messages from the given module (will call on_message())
     def add_broadcast_listener(self, from_module, command, args):
         return self.__mqtt.add_listener(self.house_id, from_module, "*/*", command, args, False)
+
+    # add a listner for broadcasted manifests (will call on_message())
+    def add_manifest_listener(self, from_module="+/+"):
+        # add a broadcast listener for the manifest
+        topic = self.add_broadcast_listener(from_module, "MANIFEST", "#")
+        # if manifests are not supposed to be retained on the bus, ask them explicitely by broadcasting a request
+        if not self.gateway_retain_config:
+            message = Message(self)
+            message.recipient = "*/*"
+            message.command = "REQ_MANIFEST"
+            self.send(message)
+        return topic
 
     # add a listener for intercepting messages from a given module to a given module (will call on_message())
     def add_inspection_listener(self, from_module, to_module, command, args):
