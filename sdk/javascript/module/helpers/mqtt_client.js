@@ -13,7 +13,7 @@ class Mqtt_client {
         // queue configuration messages while not configured
         this.__configuration_queue = []
         // if the configuration is not retained in the gateway, we need additional tools for requesting it
-        if (! this.__module.gateway_retain_config) {
+        if (this.__module.gateway_version >= 2) {
             this.pending_configurations = []
             this.pending_configurations_job = null
         }
@@ -103,7 +103,7 @@ class Mqtt_client {
     // Build the full topic (e.g. egeoffrey/v1/<house_id>/<from_module>/<to_module>/<command>/<args>)
     __build_topic(house_id, from_module, to_module, command, args) {
         if (args == "") args = "null"
-        return ["egeoffrey", constants["API_VERSION"], house_id, from_module, to_module, command, args].join("/")
+        return ["egeoffrey", "v"+this.__module.gateway_version, house_id, from_module, to_module, command, args].join("/")
     }
     
     // publish payload to a given topic (queue the message while offline)
@@ -161,7 +161,7 @@ class Mqtt_client {
             try {
                 // parse the incoming request into a message data structure
                 var message = new Message()
-                message.parse(msg.destinationName, msg.payloadString, msg.retained)
+                message.parse(msg.destinationName, msg.payloadString, msg.retained, this_class.__module.gateway_version)
                 if (this_class.__module.verbose) this_class.__module.log_debug("Received message "+message.dump(), false)
             } catch (e) {
                 this_class.__module.log_error("Invalid message received on "+msg.destinationName+" - "+msg.payloadString+": "+get_exception(e))
@@ -304,7 +304,7 @@ class Mqtt_client {
         // just wrap add_listener
         var topic = this.add_listener(house_id, "controller/config", "*/*", "CONF", args, wait_for_it)
         // if the config is not retained on the gateway, notify controller/config
-        if (! this.__module.gateway_retain_config) {
+        if (this.__module.gateway_version >= 2) {
             // add the configuration to the pending queue
             this.pending_configurations.push(args)
             // request the configuration files

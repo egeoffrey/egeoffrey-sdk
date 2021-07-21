@@ -18,7 +18,6 @@ from sdk.python.module.helpers.mqtt_client import Mqtt_client
 from sdk.python.module.helpers.scheduler import Scheduler
 from sdk.python.module.helpers.session import Session
 import sdk.python.utils.exceptions as exception
-import sdk.python.constants as constants
 import sdk.python.utils.strings
 
 class Module(threading.Thread):
@@ -47,7 +46,7 @@ class Module(threading.Thread):
         self.gateway_keyfile = os.getenv("EGEOFFREY_GATEWAY_KEYFILE", None)
         self.gateway_qos_subscribe = os.getenv("EGEOFFREY_GATEWAY_QOS_SUBSCRIBE", 2)
         self.gateway_qos_publish = os.getenv("EGEOFFREY_GATEWAY_QOS_PUBLISH", 2)
-        self.gateway_retain_config = bool(int(os.getenv("EGEOFFREY_GATEWAY_RETAIN_CONFIG", False)))
+        self.gateway_version = os.getenv("EGEOFFREY_GATEWAY_VERSION", 1)
         # house settings
         self.house_id = os.getenv("EGEOFFREY_ID", "house")
         self.house_passcode = os.getenv("EGEOFFREY_PASSCODE", "")
@@ -94,7 +93,7 @@ class Module(threading.Thread):
         # add a broadcast listener for the manifest
         topic = self.add_broadcast_listener(from_module, "MANIFEST", "#")
         # if manifests are not supposed to be retained on the bus, ask them explicitely by broadcasting a request
-        if not self.gateway_retain_config:
+        if self.gateway_version >= 2:
             message = Message(self)
             message.recipient = "*/*"
             message.command = "REQ_MANIFEST"

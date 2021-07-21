@@ -13,7 +13,7 @@ class Module {
         this.gateway_port = "EGEOFFREY_GATEWAY_PORT" in window ? window.EGEOFFREY_GATEWAY_PORT : 443
         this.gateway_ssl = "EGEOFFREY_GATEWAY_SSL" in window ? Boolean(window.EGEOFFREY_GATEWAY_SSL) : false
         this.gateway_qos_subscribe = "EGEOFFREY_GATEWAY_QOS_SUBSCRIBE" in window ? window.EGEOFFREY_GATEWAY_QOS_SUBSCRIBE : 2
-        this.gateway_retain_config = "EGEOFFREY_GATEWAY_RETAIN_CONFIG" in window ? Boolean(window.EGEOFFREY_GATEWAY_RETAIN_CONFIG) : false
+        this.gateway_version = "EGEOFFREY_GATEWAY_VERSION" in window ? window.EGEOFFREY_GATEWAY_VERSION : 1
         // house settings
         this.house_id = "EGEOFFREY_ID" in window ? window.EGEOFFREY_ID : "house"
         this.house_passcode = "EGEOFFREY_PASSCODE" in window ? window.EGEOFFREY_PASSCODE : ""
@@ -63,7 +63,7 @@ class Module {
         // add a broadcast listener for the manifest
         var topic = this.add_broadcast_listener(from_module, "MANIFEST", "#")
         // if manifests are not supposed to be retained on the bus, ask them explicitely by broadcasting a request
-        if (! this.gateway_retain_config) {
+        if (this.gateway_version >= 2) {
             var message = new Message(this)
             message.recipient = "*/*"
             message.command = "REQ_MANIFEST"

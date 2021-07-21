@@ -252,7 +252,7 @@ class Watchdog(Module):
         message.command = "MANIFEST"
         message.args = self.manifest["package"]
         message.set_data(self.manifest)
-        if self.gateway_retain_config:
+        if self.gateway_version == 1:
             message.retain = True 
         self.send(message)
     
@@ -268,7 +268,7 @@ class Watchdog(Module):
         
     # What to do when running    
     def on_start(self):
-        if self.gateway_retain_config:
+        if self.gateway_version == 1:
             # clear up previous manifest if any
             self.clear_manifest()
         # publish the new manifest
@@ -284,7 +284,7 @@ class Watchdog(Module):
         
     # What to do when shutting down
     def on_stop(self):
-        if self.gateway_retain_config:
+        if self.gateway_version == 1:
             # remove the manifest
             self.clear_manifest()
 

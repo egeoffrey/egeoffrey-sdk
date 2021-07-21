@@ -10,7 +10,6 @@ import copy
 import re
 import time
 
-import sdk.python.constants as constants
 import sdk.python.utils.exceptions as exception
 
 class Message():
@@ -63,14 +62,14 @@ class Message():
         self.__add_request_id()
 
     # parse a MQTT message (topic and payload)
-    def parse(self, topic, payload, retain):
+    def parse(self, topic, payload, retain, gateway_version):
         # split the topic
         topics = topic.split("/")
         # sanity check
         if len(topics) < 8:
             raise Exception("missing required information in topic")
-        if topics[0] != "egeoffrey" or topics[1] != constants.API_VERSION: 
-            raise Exception("invalid api call")
+        if topics[0] != "egeoffrey" or topics[1] != "v"+str(gateway_version):
+            raise Exception("invalid gateway version")
         # store original topic (mainly used by mqtt_client to dispatch the message)
         self.topic = topic
         # store individual topic sections into internal variables

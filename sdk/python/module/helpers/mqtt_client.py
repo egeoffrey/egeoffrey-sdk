@@ -6,7 +6,6 @@ import paho.mqtt.client as mqtt
 import ssl
 import Queue
 
-import sdk.python.constants as constants
 import sdk.python.utils.exceptions as exception
 from sdk.python.module.helpers.message import Message
 from sdk.python.module.helpers.mqtt_consumer import Mqtt_consumer
@@ -37,7 +36,7 @@ class Mqtt_client():
         for i in range(0, self.consumer_threads):
             self.consumers.append(Mqtt_consumer(i, self))
         # if the configuration is not retained in the gateway, we need additional tools for requesting it
-        if not self.module.gateway_retain_config:
+        if self.module.gateway_version >= 2:
             self.module.scheduler = Scheduler(self)
             self.pending_configurations = []
             self.pending_configurations_job = None
@@ -93,7 +92,7 @@ class Mqtt_client():
     # Build the full topic (e.g. egeoffrey/v1/<house_id>/<from_module>/<to_module>/<command>/<args>)
     def __build_topic(self, house_id, from_module, to_module, command, args):
         if args == "": args = "null"
-        return "/".join(["egeoffrey", constants.API_VERSION, house_id, from_module, to_module, command, args])
+        return "/".join(["egeoffrey", "v"+str(self.module.gateway_version), house_id, from_module, to_module, command, args])
 
     # publish a given topic 
     def publish(self, house_id, to_module, command, args, payload_data, retain=False):
@@ -155,7 +154,7 @@ class Mqtt_client():
             try:
                 # parse the incoming request into a message data structure
                 message = Message()
-                message.parse(msg.topic, msg.payload, msg.retain)
+                message.parse(msg.topic, msg.payload, msg.retain, self.module.gateway_version)
                 if self.module.verbose: self.module.log_debug("Received message "+message.dump(), False)
             except Exception,e:
                 self.module.log_error("Invalid message received on "+msg.topic+" - "+msg.payload+": "+exception.get(e))
@@ -232,7 +231,7 @@ class Mqtt_client():
         # just wrap add_listner
         topic = self.add_listener(house_id, "controller/config", "*/*", "CONF", args, wait_for_it)
         # if the config is not retained on the gateway, notify controller/config we need this piece of config
-        if not self.module.gateway_retain_config:
+        if self.module.gateway_version >= 2:
             # add the configuration to the pending queue
             self.pending_configurations.append(args)
             # request the configuration files
