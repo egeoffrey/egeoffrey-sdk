@@ -94,8 +94,9 @@ class Module(threading.Thread):
         topic = self.add_broadcast_listener(from_module, "MANIFEST", "#")
         # if manifests are not supposed to be retained on the bus, ask them explicitely by broadcasting a request
         if self.gateway_version >= 2:
+            recipient = "*/*" if from_module == "+/+" else from_module
             message = Message(self)
-            message.recipient = "*/*"
+            message.recipient = recipient
             message.command = "REQ_MANIFEST"
             self.send(message)
         return topic

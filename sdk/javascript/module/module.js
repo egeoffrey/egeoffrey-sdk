@@ -64,8 +64,9 @@ class Module {
         var topic = this.add_broadcast_listener(from_module, "MANIFEST", "#")
         // if manifests are not supposed to be retained on the bus, ask them explicitely by broadcasting a request
         if (this.gateway_version >= 2) {
+            var recipient = from_module == "+/+" ? "*/*" : from_module
             var message = new Message(this)
-            message.recipient = "*/*"
+            message.recipient = recipient
             message.command = "REQ_MANIFEST"
             this.send(message)
         }
