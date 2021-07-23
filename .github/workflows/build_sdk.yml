@@ -29,6 +29,10 @@ jobs:
       - name: Setup Docker buildx
         uses: docker/setup-buildx-action@v1
 
+      - name: Install eGeoffrey
+        run: | 
+          sudo EGEOFFREY_INSTALL_DIRECTORY=/tmp/egeoffrey EGEOFFREY_SETUP_REMOTE=n bash -c "$(curl -ssL https://get.egeoffrey.com)"
+
       - name: Build the eGeoffrey SDK
         run: | 
           egeoffrey-cli -o build_sdk alpine amd64 >> /tmp/egeoffrey.log 2>&1
