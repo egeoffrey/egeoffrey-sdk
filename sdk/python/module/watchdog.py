@@ -271,8 +271,8 @@ class Watchdog(Module):
         if self.gateway_version == 1:
             # clear up previous manifest if any
             self.clear_manifest()
-            # publish the new manifest
-            self.publish_manifest()
+        # publish the new manifest
+        self.publish_manifest()
         # start all the requested modules
         for entry in self.modules:
             self.start_module(entry)
