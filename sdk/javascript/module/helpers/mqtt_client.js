@@ -1,5 +1,3 @@
-
-
 class Mqtt_client {
     constructor(module) {
         // we need the module's object to call its methods
@@ -14,6 +12,35 @@ class Mqtt_client {
         this.__publish_queue = []
         // queue configuration messages while not configured
         this.__configuration_queue = []
+        // if the configuration is not retained in the gateway, we need additional tools for requesting it
+        if (this.__module.gateway_version >= 2) {
+            this.pending_configurations = []
+            this.pending_configurations_job = null
+        }
+    }
+
+    // notify controller/config we need some configuration files
+    __send_configuration_request(topic) {
+        var message = new Message(this.__module)
+        message.recipient = "controller/config"
+        message.command = "SUBSCRIBE"
+        message.set_data(topic)
+        this.__module.send(message)
+    }
+
+    // job for periodically sending configuration request if controller/config does not respond or it is not running
+    __resend_configuration_request() {
+        // if we received all the pending configurations, clear the scheduled job
+        if (this.pending_configurations.length == 0) {
+            clearInterval(this.pending_configurations_job)
+            this.pending_configurations_job = null
+            return
+        } else {
+            // otherwise for each pending configuration, send again a request to controller/config
+            for (var topic of this.pending_configurations) {
+                this.__send_configuration_request(topic)
+            }
+        }
     }
 
     // connect to the MQTT broker
@@ -67,7 +94,7 @@ class Mqtt_client {
     __subscribe(topic) {
         this.__module.log_debug("Subscribing topic "+topic)
         try {
-            this.__gateway.subscribe(topic, {"qos": 2})
+            this.__gateway.subscribe(topic, {"qos": this.__module.gateway_qos_subscribe})
         } catch(e) {
             this.__module.log_error("Unable to subscribe to topic "+topic+": "+get_exception(e))
         }
@@ -76,7 +103,7 @@ class Mqtt_client {
     // Build the full topic (e.g. egeoffrey/v1/<house_id>/<from_module>/<to_module>/<command>/<args>)
     __build_topic(house_id, from_module, to_module, command, args) {
         if (args == "") args = "null"
-        return ["egeoffrey", constants["API_VERSION"], house_id, from_module, to_module, command, args].join("/")
+        return ["egeoffrey", "v"+this.__module.gateway_version, house_id, from_module, to_module, command, args].join("/")
     }
     
     // publish payload to a given topic (queue the message while offline)
@@ -134,7 +161,7 @@ class Mqtt_client {
             try {
                 // parse the incoming request into a message data structure
                 var message = new Message()
-                message.parse(msg.destinationName, msg.payloadString, msg.retained)
+                message.parse(msg.destinationName, msg.payloadString, msg.retained, this_class.__module.gateway_version)
                 if (this_class.__module.verbose) this_class.__module.log_debug("Received message "+message.dump(), false)
             } catch (e) {
                 this_class.__module.log_error("Invalid message received on "+msg.destinationName+" - "+msg.payloadString+": "+get_exception(e))
@@ -157,7 +184,13 @@ class Mqtt_client {
                             var configuration_consumed = false
                             if (this_class.__topics_to_wait.length > 0) {
                                 for (var req_pattern of this_class.__topics_to_wait) {
-                                    if (topic_matches_sub(req_pattern, message.topic)) {
+                                    // normalize the pattern so to match also configuration files received directly
+                                    var req_pattern_normalized = req_pattern
+                                    if (req_pattern.includes("*/*")) {
+                                        req_pattern_normalized = req_pattern.replace("*/*","+/+")
+                                    }
+                                    // check if we were waiting for this file
+                                    if (topic_matches_sub(req_pattern_normalized, message.topic)) {
                                         this_class.__module.log_debug("received configuration "+message.topic)
                                         var index = this_class.__topics_to_wait.indexOf(req_pattern)
                                         this_class.__topics_to_wait.splice(index, 1)
@@ -197,6 +230,12 @@ class Mqtt_client {
                             message.reply()
                             message.command = "PONG"
                             this_class.__module.send(message)
+                        // controller/config acknowledged this subscribe request
+                        } else if (message.sender == "controller/config" && message.command == "SUBSCRIBE_ACK") {
+                                pattern = message.get_data()
+                                if (this_class.pending_configurations.includes(pattern)) {
+                                    this_class.pending_configurations.remove(pattern)
+                                }
                         // notify the module about this message (only if fully configured)
                         } else {
                             if (this_class.__module.configured) {
@@ -256,6 +295,26 @@ class Mqtt_client {
         else {
             if (this.__topics_to_subscribe.includes(topic)) return topic
             this.__topics_to_subscribe.push(topic)
+        }
+        return topic
+    }
+
+    // add a configuration listener for the given request
+    add_configuration_listener(house_id, args, wait_for_it) {
+        // just wrap add_listener
+        var topic = this.add_listener(house_id, "controller/config", "*/*", "CONF", args, wait_for_it)
+        // if the config is not retained on the gateway, notify controller/config
+        if (this.__module.gateway_version >= 2) {
+            // add the configuration to the pending queue
+            this.pending_configurations.push(args)
+            // request the configuration files
+            this.__send_configuration_request(args)
+            // if not already running, schedule a job for periodically resending configuration requests in case controller/config has not responded
+            if (this.pending_configurations_job == null) {
+                this.pending_configurations_job = setInterval(function(this_class) {
+                    return this_class.__resend_configuration_request()
+                }(this), 2000);
+            }
         }
         return topic
     }

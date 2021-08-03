@@ -63,7 +63,12 @@ class Mqtt_consumer(threading.Thread):
                         configuration_consumed = False
                         if len(self.mqtt_client.topics_to_wait) > 0:
                             for req_pattern in self.mqtt_client.topics_to_wait:
-                                if mqtt.topic_matches_sub(req_pattern, message.topic):
+                                # normalize the pattern so to match also configuration files received directly
+                                req_pattern_normalized = req_pattern
+                                if "*/*" in req_pattern: 
+                                    req_pattern_normalized = req_pattern.replace("*/*","+/+")
+                                # check if we were waiting for this file
+                                if mqtt.topic_matches_sub(req_pattern_normalized, message.topic):
                                     self.mqtt_client.module.log_debug("received configuration "+message.topic)
                                     configuration_consumed = True
                                     self.mqtt_client.topics_to_wait.remove(req_pattern)
@@ -87,6 +92,11 @@ class Mqtt_consumer(threading.Thread):
                         # if this message was not consumed and the module is still unconfigured, queue it, will be delivered once configured
                         if not configuration_consumed and not self.mqtt_client.module.configured:
                             self.mqtt_client.configuration_queue.append(message)
+                    # controller/config acknowledged this subscribe request     
+                    elif message.sender == "controller/config" and message.command == "SUBSCRIBE_ACK":
+                        pattern = message.get_data()
+                        if pattern in self.mqtt_client.pending_configurations:
+                            self.mqtt_client.pending_configurations.remove(pattern)
                     # handle internal messages
                     elif message.command == "PING":
                         message.reply()

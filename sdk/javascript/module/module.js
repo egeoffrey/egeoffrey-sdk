@@ -1,5 +1,3 @@
-
-
 // Module class from which all the components inherits common functionalities
 class Module {
     constructor(scope, name) {
@@ -14,6 +12,8 @@ class Module {
         this.gateway_hostname = "EGEOFFREY_GATEWAY_HOSTNAME" in window ? window.EGEOFFREY_GATEWAY_HOSTNAME : "localhost"
         this.gateway_port = "EGEOFFREY_GATEWAY_PORT" in window ? window.EGEOFFREY_GATEWAY_PORT : 443
         this.gateway_ssl = "EGEOFFREY_GATEWAY_SSL" in window ? Boolean(window.EGEOFFREY_GATEWAY_SSL) : false
+        this.gateway_qos_subscribe = "EGEOFFREY_GATEWAY_QOS_SUBSCRIBE" in window ? window.EGEOFFREY_GATEWAY_QOS_SUBSCRIBE : 2
+        this.gateway_version = "EGEOFFREY_GATEWAY_VERSION" in window ? window.EGEOFFREY_GATEWAY_VERSION : 1
         // house settings
         this.house_id = "EGEOFFREY_ID" in window ? window.EGEOFFREY_ID : "house"
         this.house_passcode = "EGEOFFREY_PASSCODE" in window ? window.EGEOFFREY_PASSCODE : ""
@@ -41,10 +41,11 @@ class Module {
         }
         
     }
+
     // Add a listener for the given configuration request (will call on_configuration())
     add_configuration_listener(args, version=null, wait_for_it=false) {
         var filename = version == null ? args : version+"/"+args
-        return this.__mqtt.add_listener(this.house_id, "controller/config", "*/*", "CONF", filename, wait_for_it)
+        return this.__mqtt.add_configuration_listener(this.house_id, filename, wait_for_it)
     }
     
     // add a listener for the messages addressed to this module (will call on_message())
@@ -56,7 +57,22 @@ class Module {
     add_broadcast_listener(from_module, command, args) {
         return this.__mqtt.add_listener(this.house_id, from_module, "*/*", command, args, false)
     }
-    
+
+    // add a listner for broadcasted manifests (will call on_message())
+    add_manifest_listener(from_module="+/+") {
+        // add a broadcast listener for the manifest
+        var topic = this.add_broadcast_listener(from_module, "MANIFEST", "#")
+        // if manifests are not supposed to be retained on the bus, ask them explicitely by broadcasting a request
+        if (this.gateway_version >= 2) {
+            var recipient = from_module == "+/+" ? "*/*" : from_module
+            var message = new Message(this)
+            message.recipient = recipient
+            message.command = "REQ_MANIFEST"
+            this.send(message)
+        }
+        return topic
+    }
+
     // add a listener for intercepting messages from a given module to a given module (will call on_message())
     add_inspection_listener(from_module, to_module, command, args) {
         return this.__mqtt.add_listener(this.house_id, from_module, to_module, command, args, false)

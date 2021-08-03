@@ -58,11 +58,11 @@ class Message {
     }
     
     // parse MQTT message (topic and payload)
-    parse(topic, payload, retain) {
+    parse(topic, payload, retain, gateway_version) {
         var topics = topic.split("/")
         // sanity check
         if (topics.legth  < 8) throw "missing required information in topic"
-        if (topics[0] != "egeoffrey" || topics[1] != constants["API_VERSION"]) throw "invalid api call"
+        if (topics[0] != "egeoffrey" || topics[1] != "v"+gateway_version) throw "invalid gateway version"
         this.topic = topic
         this.house_id = topics[2]
         this.sender = topics[3]+"/"+topics[4]

@@ -4,11 +4,19 @@
 SUPPORTED_MANIFEST_SCHEMA=2
 PACKAGE_MANIFEST="manifest.yml"
 SDK_MANIFEST="sdk/manifest.yml"
-API_VERSION=$(echo -e "import sdk.python.constants\nprint sdk.python.constants.API_VERSION"|python)
+
+# extract a string value from a file
+extract()
+{
+    STRING=$1
+    FILE=$2
+    grep "^$STRING:" $FILE | awk '{ print $2}'
+}
+
 
 # Get the package manifest schema version if the file exists
 if [ -f "$PACKAGE_MANIFEST" ]; then
-    MANIFEST_SCHEMA=$(yq -r .manifest_schema $PACKAGE_MANIFEST)
+    MANIFEST_SCHEMA=$(extract manifest_schema $PACKAGE_MANIFEST)
     if [ $MANIFEST_SCHEMA != $SUPPORTED_MANIFEST_SCHEMA ]; then
         echo "ERROR: unsupported manifest schema v"$MANIFEST_SCHEMA
         exit
@@ -17,11 +25,11 @@ fi
 
 # welcome message (package)
 if [ -f "$PACKAGE_MANIFEST" ]; then
-    echo -e "Package "$(yq -r .package $PACKAGE_MANIFEST)" v"$(yq -r .version $PACKAGE_MANIFEST |xargs printf '%.1f')"-"$(yq -r .revision $PACKAGE_MANIFEST)" ("$(yq -r .branch $PACKAGE_MANIFEST)") | SDK v"$(yq -r .version $SDK_MANIFEST |xargs printf '%.1f')"-"$(yq -r .revision $SDK_MANIFEST)" ("$(yq -r .branch $SDK_MANIFEST)") | API "$API_VERSION
-    echo -e "Environment settings: MODULES ["$EGEOFFREY_MODULES"] | GATEWAY ["$EGEOFFREY_GATEWAY_HOSTNAME" "$EGEOFFREY_GATEWAY_PORT"] | HOUSE ["$EGEOFFREY_ID"]"
+    echo -e "Package "$(extract package $PACKAGE_MANIFEST)" v"$(extract version $PACKAGE_MANIFEST |xargs printf '%.1f')"-"$(extract revision $PACKAGE_MANIFEST)" ("$(extract branch $PACKAGE_MANIFEST)") | SDK v"$(extract version $SDK_MANIFEST |xargs printf '%.1f')"-"$(extract revision $SDK_MANIFEST)" ("$(extract branch $SDK_MANIFEST)")"
+    echo -e "Environment settings: MODULES ["$EGEOFFREY_MODULES"] | GATEWAY ["$EGEOFFREY_GATEWAY_HOSTNAME" "$EGEOFFREY_GATEWAY_PORT" v"$EGEOFFREY_GATEWAY_VERSION"] | HOUSE ["$EGEOFFREY_ID"]"
 # welcome message (sdk)
 else
-    echo -e "SDK v"$(yq -r .version $SDK_MANIFEST |xargs printf '%.1f')"-"$(yq -r .revision $SDK_MANIFEST)" ("$(yq -r .branch $SDK_MANIFEST)") | API "$API_VERSION
+    echo -e "SDK v"$(extract version $SDK_MANIFEST |xargs printf '%.1f')"-"$(extract revision $SDK_MANIFEST)" ("$(extract branch $SDK_MANIFEST)")"
 fi
 
 # execute eGeoffrey
