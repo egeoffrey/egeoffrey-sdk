@@ -1,17 +1,17 @@
 ### EGEOFFREY ###
 
 ### define base image
-FROM resin/rpi-raspbian
+FROM balenalib/rpi-raspbian
 
 ### define workdir
 ENV WORKDIR=/egeoffrey 
 WORKDIR $WORKDIR
 
 ### install dependencies
-RUN apt-get update && apt-get install -y jq nano curl wget unzip python-pip expect net-tools usbutils raspi-config raspi-gpio wiringpi libraspberrypi-bin libusb-1.0.0-dev build-essential autoconf cmake pkg-config libtool python-dev libyaml-dev && apt-get clean && rm -rf /var/lib/apt/lists/*
-#RUN pip install typing && pip install --upgrade "pip < 21.0"
+RUN apt-get update && apt-get install -y nano curl wget unzip python python-pip python3 python3-pip expect net-tools usbutils raspi-config raspi-gpio wiringpi libraspberrypi-bin libusb-1.0.0-dev build-essential autoconf cmake pkg-config libtool python-dev libyaml-dev && apt-get clean && rm -rf /var/lib/apt/lists/*
 RUN pip install --upgrade "pip < 21.0"
 RUN pip install paho-mqtt requests tinynumpy pyyaml yq apscheduler
+RUN pip3 install paho-mqtt requests tinynumpy pyyaml yq apscheduler
 
 ### install eGeoffrey SDK
 COPY . $WORKDIR

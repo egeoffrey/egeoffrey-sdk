@@ -1,4 +1,4 @@
-branch: master
+branch: development
 description: null
 dockerhub: egeoffrey/egeoffrey-sdk
 github: egeoffrey/egeoffrey-sdk
@@ -7,4 +7,4 @@ modules: []
 package: egeoffrey-sdk
 revision: 1
 tags: null
-version: 1.1
+version: 1.2
