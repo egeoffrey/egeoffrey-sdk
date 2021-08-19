@@ -12,6 +12,7 @@ from sdk.python3.module.helpers.mqtt_consumer import Mqtt_consumer
 from sdk.python3.module.helpers.scheduler import Scheduler
 
 import sdk.python3.utils.numbers
+import sdk.python3.utils.strings
 
 class Mqtt_client():
     def __init__(self, module):
@@ -98,7 +99,8 @@ class Mqtt_client():
     def publish(self, house_id, to_module, command, args, payload_data, retain=False):
         # serialize the payload in a json format
         payload = payload_data
-        if payload is not None: payload = json.dumps(payload)
+        if payload is not None: 
+            payload = json.dumps(sdk.python3.utils.strings.convert_bytes(payload))
         # build the topic to publish to
         topic = self.__build_topic(house_id, self.module.fullname, to_module, command, args)
         # publish if connected

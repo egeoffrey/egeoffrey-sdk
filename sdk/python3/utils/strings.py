@@ -24,3 +24,10 @@ def format_log_line(severity, module, text):
     if severity == "WARNING": severity = "\033[33mWARNING\033[0m"
     elif severity == "ERROR": severity = "\033[31mERROR\033[0m"
     return "["+datetime.now().strftime("%Y-%m-%d %H:%M:%S")+"]["+str(module)+"] "+severity+ ": "+truncate(str(text), 2000)
+
+# recursively convert bytes into strings within the provided object
+def convert_bytes(data):
+    if isinstance(data, bytes):  return data.decode()
+    if isinstance(data, dict):   return dict(map(convert_bytes, data.items()))
+    if isinstance(data, tuple):  return map(convert_bytes, data)
+    return data
